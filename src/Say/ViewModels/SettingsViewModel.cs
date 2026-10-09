@@ -15,15 +15,19 @@ public sealed record AudioDeviceItem(int Number, string Name)
     public override string ToString() => Name;
 }
 
+public sealed record ModelOption(string Id, string Name);
+
 public partial class SettingsViewModel : ObservableObject
 {
     private readonly SettingsStore _store;
     private readonly ModelManager _models;
     private readonly TranscriptionService _transcription;
+    private readonly TranscriptionService _previewTranscription;
     private bool _suppressSelection;
+    private bool _rebuildingPreviewOptions;
 
     [ObservableProperty]
-    private string _selectedLanguageCode;
+    private string _selectedPreviewModelId = string.Empty;
 
     [ObservableProperty]
     private int _threads;
@@ -54,14 +58,15 @@ public partial class SettingsViewModel : ObservableObject
     public SettingsViewModel(
         SettingsStore store,
         ModelManager models,
-        TranscriptionService transcription)
+        TranscriptionService transcription,
+        TranscriptionService previewTranscription)
     {
         _store = store;
         _models = models;
         _transcription = transcription;
+        _previewTranscription = previewTranscription;
 
         var s = store.Current;
-        _selectedLanguageCode = s.Language;
         _threads = s.Threads;
         _appendTrailingSpace = s.AppendTrailingSpace;
         _restoreClipboard = s.RestoreClipboard;
@@ -72,12 +77,37 @@ public partial class SettingsViewModel : ObservableObject
         _pasteMethod = s.PasteMethod;
 
         LoadAudioDevices();
+        BuildLanguageOptions();
         RefreshModels();
     }
 
-    public IReadOnlyList<WhisperLanguage> Languages => WhisperLanguages.All;
+    public ObservableCollection<LanguageOptionViewModel> LanguageOptions { get; } = [];
+
+    private void BuildLanguageOptions()
+    {
+        var selected = new HashSet<string>(_store.Current.Languages, StringComparer.OrdinalIgnoreCase);
+        foreach (var language in WhisperLanguages.All.Where(l => l.Code != "auto"))
+        {
+            LanguageOptions.Add(new LanguageOptionViewModel(
+                language.Code,
+                language.Name,
+                selected.Contains(language.Code),
+                OnLanguageOptionChanged));
+        }
+    }
+
+    private void OnLanguageOptionChanged()
+    {
+        _store.Current.Languages = LanguageOptions
+            .Where(o => o.IsSelected)
+            .Select(o => o.Code)
+            .ToList();
+        _store.Save();
+    }
 
     public ObservableCollection<AudioDeviceItem> AudioDevices { get; } = [];
+
+    public ObservableCollection<ModelOption> PreviewOptions { get; } = [];
 
     public ObservableCollection<ModelItemViewModel> Models { get; } = [];
 
@@ -144,7 +174,51 @@ public partial class SettingsViewModel : ObservableObject
         }
 
         _suppressSelection = false;
+        RebuildPreviewOptions();
         UpdateFirstRunBanner();
+    }
+
+    private void RebuildPreviewOptions()
+    {
+        var previewId = _store.Current.PreviewModelId;
+        if (previewId is not null && Models.All(m => !(m.Id == previewId && m.IsDownloaded)))
+        {
+            previewId = null;
+            _store.Current.PreviewModelId = null;
+            _store.Save();
+        }
+
+        _rebuildingPreviewOptions = true;
+        try
+        {
+            PreviewOptions.Clear();
+            PreviewOptions.Add(new ModelOption(string.Empty, "Same as final model"));
+            foreach (var item in Models.Where(m => m.IsDownloaded))
+            {
+                PreviewOptions.Add(new ModelOption(item.Id, item.Name));
+            }
+
+            SelectedPreviewModelId = previewId ?? string.Empty;
+        }
+        finally
+        {
+            _rebuildingPreviewOptions = false;
+        }
+
+        UpdateRoleBadges();
+    }
+
+    private void UpdateRoleBadges()
+    {
+        var finalId = _store.Current.SelectedModelId;
+        var effectivePreviewId = string.IsNullOrEmpty(SelectedPreviewModelId)
+            ? finalId
+            : SelectedPreviewModelId;
+
+        foreach (var item in Models)
+        {
+            item.IsPreviewRole = item.Id == effectivePreviewId;
+        }
     }
 
     public void StartDownload(ModelItemViewModel item)
@@ -191,6 +265,7 @@ public partial class SettingsViewModel : ObservableObject
             item.DownloadCts?.Dispose();
             item.DownloadCts = null;
             item.Refresh();
+            RebuildPreviewOptions();
             UpdateFirstRunBanner();
         }
     }
@@ -286,6 +361,7 @@ public partial class SettingsViewModel : ObservableObject
         }
 
         _suppressSelection = false;
+        UpdateRoleBadges();
         UpdateFirstRunBanner();
     }
 
@@ -301,10 +377,17 @@ public partial class SettingsViewModel : ObservableObject
     private void UpdateFirstRunBanner() =>
         ShowFirstRunBanner = Models.All(m => !m.IsDownloaded);
 
-    partial void OnSelectedLanguageCodeChanged(string value)
+    partial void OnSelectedPreviewModelIdChanged(string value)
     {
-        _store.Current.Language = value;
+        if (_rebuildingPreviewOptions)
+        {
+            return;
+        }
+
+        _store.Current.PreviewModelId = string.IsNullOrEmpty(value) ? null : value;
         _store.Save();
+        _previewTranscription.Unload();
+        UpdateRoleBadges();
     }
 
     partial void OnThreadsChanged(int value)

@@ -81,7 +81,7 @@ internal static class SelfTest
             var text = transcription
                 .TranscribeAsync(
                     samples,
-                    new TranscriptionOptions(store.Current.Language, store.Current.Threads),
+                    new TranscriptionOptions(LanguageSelection.FixedLanguage(store.Current), LanguageSelection.Candidates(store.Current), store.Current.Threads),
                     CancellationToken.None)
                 .GetAwaiter()
                 .GetResult();
@@ -180,7 +180,7 @@ internal static class SelfTest
             var text = transcription
                 .TranscribeAsync(
                     samples,
-                    new TranscriptionOptions(store.Current.Language, store.Current.Threads),
+                    new TranscriptionOptions(LanguageSelection.FixedLanguage(store.Current), LanguageSelection.Candidates(store.Current), store.Current.Threads),
                     CancellationToken.None)
                 .GetAwaiter()
                 .GetResult();

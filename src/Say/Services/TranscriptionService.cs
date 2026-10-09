@@ -1,14 +1,13 @@
-using System.IO;
 using System.Text;
 using Whisper.net;
 
 namespace Say.Services;
 
-public readonly record struct TranscriptionOptions(string Language, int Threads);
+public readonly record struct TranscriptionOptions(string? Language, IReadOnlyList<string> Candidates, int Threads);
 
 public sealed class TranscriptionService : IDisposable
 {
-    private readonly object _lock = new();
+    private readonly SemaphoreSlim _gate = new(1, 1);
     private WhisperFactory? _factory;
     private string? _modelPath;
 
@@ -16,16 +15,22 @@ public sealed class TranscriptionService : IDisposable
     {
         get
         {
-            lock (_lock)
+            _gate.Wait();
+            try
             {
                 return _modelPath;
+            }
+            finally
+            {
+                _gate.Release();
             }
         }
     }
 
     public void Load(string modelPath)
     {
-        lock (_lock)
+        _gate.Wait();
+        try
         {
             if (_factory is not null && string.Equals(_modelPath, modelPath, StringComparison.OrdinalIgnoreCase))
             {
@@ -36,15 +41,24 @@ public sealed class TranscriptionService : IDisposable
             _factory = WhisperFactory.FromPath(modelPath);
             _modelPath = modelPath;
         }
+        finally
+        {
+            _gate.Release();
+        }
     }
 
     public void Unload()
     {
-        lock (_lock)
+        _gate.Wait();
+        try
         {
             _factory?.Dispose();
             _factory = null;
             _modelPath = null;
+        }
+        finally
+        {
+            _gate.Release();
         }
     }
 
@@ -53,27 +67,24 @@ public sealed class TranscriptionService : IDisposable
         TranscriptionOptions options,
         CancellationToken cancellationToken)
     {
-        WhisperFactory factory;
-        lock (_lock)
+        await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
         {
-            factory = _factory ?? throw new InvalidOperationException("No Whisper model is loaded.");
-        }
+            var factory = _factory ?? throw new InvalidOperationException("No Whisper model is loaded.");
 
-        var builder = factory.CreateBuilder()
-            .WithThreads(Math.Clamp(options.Threads, 1, 32))
-            .WithNoContext();
+            var builder = factory.CreateBuilder()
+                .WithThreads(Math.Clamp(options.Threads, 1, 32))
+                .WithNoContext();
 
-        if (string.IsNullOrEmpty(options.Language) || options.Language == "auto")
-        {
-            builder = builder.WithLanguageDetection();
-        }
-        else
-        {
-            builder = builder.WithLanguage(options.Language);
-        }
+            if (!string.IsNullOrEmpty(options.Language))
+            {
+                builder = builder.WithLanguage(options.Language);
+            }
+            else
+            {
+                builder = builder.WithLanguageDetection();
+            }
 
-        return await Task.Run(async () =>
-        {
             await using var processor = builder.Build();
             var sb = new StringBuilder();
             await foreach (var segment in processor.ProcessAsync(samples, cancellationToken))
@@ -82,7 +93,31 @@ public sealed class TranscriptionService : IDisposable
             }
 
             return sb.ToString().Trim();
-        }, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    public async Task<string?> DetectLanguageAsync(
+        float[] samples,
+        IReadOnlyList<string> candidates,
+        CancellationToken cancellationToken)
+    {
+        await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            var factory = _factory ?? throw new InvalidOperationException("No Whisper model is loaded.");
+
+            await using var processor = factory.CreateBuilder().Build();
+            var (language, _) = processor.DetectLanguageWithProbability(samples, candidates.ToArray());
+            return language;
+        }
+        finally
+        {
+            _gate.Release();
+        }
     }
 
     public static string GetRuntimeInfo()
@@ -97,5 +132,19 @@ public sealed class TranscriptionService : IDisposable
         }
     }
 
-    public void Dispose() => Unload();
+    public void Dispose()
+    {
+        _gate.Wait();
+        try
+        {
+            _factory?.Dispose();
+            _factory = null;
+            _modelPath = null;
+        }
+        finally
+        {
+            _gate.Release();
+            _gate.Dispose();
+        }
+    }
 }

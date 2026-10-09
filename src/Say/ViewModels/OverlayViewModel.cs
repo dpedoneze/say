@@ -20,6 +20,9 @@ public partial class OverlayViewModel : ObservableObject
     private string _elapsedText = string.Empty;
 
     [ObservableProperty]
+    private string _detectedLanguage = string.Empty;
+
+    [ObservableProperty]
     private bool _latched;
 
     [ObservableProperty]
@@ -38,7 +41,9 @@ public partial class OverlayViewModel : ObservableObject
     public string StatusText => State switch
     {
         DictationState.Idle => "Say",
-        DictationState.Listening => "Listening",
+        DictationState.Listening => DetectedLanguage.Length > 0
+            ? $"Listening · {DetectedLanguage}"
+            : "Listening",
         DictationState.Processing => "Transcribing…",
         DictationState.Done => "Pasted",
         _ => string.Empty,
@@ -77,6 +82,8 @@ public partial class OverlayViewModel : ObservableObject
     }
 
     partial void OnLatchedChanged(bool value) => OnPropertyChanged(nameof(HintText));
+
+    partial void OnDetectedLanguageChanged(string value) => OnPropertyChanged(nameof(StatusText));
 
     partial void OnNoticeTextChanged(string value) => OnPropertyChanged(nameof(HintText));
 

@@ -135,10 +135,20 @@
                 <StackPanel Grid.Column="1" VerticalAlignment="Center">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="SemiBold" Foreground="#111827"/>
-                        <Border Background="#DBEAFE" CornerRadius="4" Padding="5,1" Margin="8,0,0,0"
+                        <Border Background="#FEF3C7" CornerRadius="4" Padding="5,1" Margin="8,0,0,0"
                                 VerticalAlignment="Center"
                                 Visibility="{Binding IsRecommended, Converter={StaticResource BoolToVis}}">
-                            <TextBlock Text="Recommended" FontSize="10" Foreground="#1D4ED8"/>
+                            <TextBlock Text="Recommended" FontSize="10" Foreground="#92400E"/>
+                        </Border>
+                        <Border Background="#DBEAFE" CornerRadius="4" Padding="5,1" Margin="6,0,0,0"
+                                VerticalAlignment="Center"
+                                Visibility="{Binding IsSelected, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="Final" FontSize="10" Foreground="#1D4ED8"/>
+                        </Border>
+                        <Border Background="#EDE9FE" CornerRadius="4" Padding="5,1" Margin="6,0,0,0"
+                                VerticalAlignment="Center"
+                                Visibility="{Binding IsPreviewRole, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="Preview" FontSize="10" Foreground="#6D28D9"/>
                         </Border>
                     </StackPanel>
                     <TextBlock Text="{Binding Note}" FontSize="11" Foreground="#6B7280" TextWrapping="Wrap"/>
@@ -180,7 +190,7 @@
                     <StackPanel>
                         <TextBlock Text="Whisper model" Style="{StaticResource SectionTitle}"/>
                         <TextBlock Style="{StaticResource SectionSubtitle}"
-                                   Text="Pick the model used for dictation. Bigger models are more accurate but slower on CPU. Downloads come from Hugging Face once, then inference is fully offline."/>
+                                   Text="Pick the final model here: it transcribes what gets pasted. Optionally set a faster preview model under Dictation to power the live preview. Downloads come from Hugging Face once, then inference is fully offline."/>
                         <ItemsControl ItemsSource="{Binding Models}"/>
                     </StackPanel>
                 </Border>
@@ -189,7 +199,7 @@
                     <StackPanel>
                         <TextBlock Text="Dictation" Style="{StaticResource SectionTitle}"/>
                         <TextBlock Style="{StaticResource SectionSubtitle}"
-                                   Text="Tap the hotkey to toggle hands-free listening, or hold it to push-to-talk. Esc cancels a session."/>
+                                   Text="Tap the hotkey to toggle hands-free listening, or hold it to push-to-talk. Esc cancels a session. A small preview model keeps the live preview fast; the final model runs once when you stop."/>
 
                         <Grid Margin="0,2,0,8">
                             <Grid.ColumnDefinitions>
@@ -204,17 +214,42 @@
                                        VerticalAlignment="Center"/>
                         </Grid>
 
+                        <TextBlock Text="Languages" Style="{StaticResource RowLabel}" Margin="0,2,0,2"/>
+                        <TextBlock FontSize="10.5" Foreground="#9CA3AF" TextWrapping="Wrap" Margin="0,0,0,6"
+                                   Text="None checked: detect among all languages · one checked: always use it · several checked: detect only among them (faster and more reliable)."/>
+                        <Border BorderBrush="#E6E8EC" BorderThickness="1" CornerRadius="8" Padding="10,6" Margin="0,0,0,10">
+                            <ScrollViewer Height="118" VerticalScrollBarVisibility="Auto">
+                                <ItemsControl ItemsSource="{Binding LanguageOptions}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <CheckBox Content="{Binding Name}"
+                                                      IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                                      FontSize="12"
+                                                      Foreground="#374151"
+                                                      MinWidth="128"
+                                                      Margin="0,3,16,3"/>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </Border>
+
                         <Grid Margin="0,0,0,8">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="130"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="Language" Style="{StaticResource RowLabel}"/>
+                            <TextBlock Grid.Column="0" Text="Preview model" Style="{StaticResource RowLabel}"/>
                             <ComboBox Grid.Column="1" Width="220" HorizontalAlignment="Left"
-                                      ItemsSource="{Binding Languages}"
+                                      ItemsSource="{Binding PreviewOptions}"
                                       DisplayMemberPath="Name"
-                                      SelectedValuePath="Code"
-                                      SelectedValue="{Binding SelectedLanguageCode, Mode=TwoWay}"/>
+                                      SelectedValuePath="Id"
+                                      SelectedValue="{Binding SelectedPreviewModelId, Mode=TwoWay}"/>
                         </Grid>
 
                         <Grid Margin="0,0,0,8">

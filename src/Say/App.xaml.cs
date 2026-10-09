@@ -16,6 +16,7 @@ public partial class App : Application
     private AudioCaptureService? _audio;
     private ModelManager? _models;
     private TranscriptionService? _transcription;
+    private TranscriptionService? _previewTranscription;
     private TargetWindowService? _targets;
     private PasteService? _paste;
     private GlobalHotkeyService? _hotkeys;
@@ -25,6 +26,7 @@ public partial class App : Application
     private SettingsWindow? _settingsWindow;
     private TaskbarIcon? _tray;
     private System.Drawing.Icon? _trayIcon;
+    private bool _hideOverlayAfterSession;
 
     public App()
     {
@@ -83,6 +85,7 @@ public partial class App : Application
         _audio = new AudioCaptureService();
         _models = new ModelManager();
         _transcription = new TranscriptionService();
+        _previewTranscription = new TranscriptionService();
         _targets = new TargetWindowService();
         _paste = new PasteService(_targets);
 
@@ -96,6 +99,7 @@ public partial class App : Application
         _controller = new DictationController(
             _audio,
             _transcription,
+            _previewTranscription,
             _models,
             _paste,
             _targets,
@@ -104,6 +108,9 @@ public partial class App : Application
             _overlayVm,
             repositionOverlay: hwnd =>
             {
+                // If the overlay was hidden when the session starts, it reappears for the
+                // session and is hidden again when the session is completed.
+                _hideOverlayAfterSession = _overlay is { IsVisible: false };
                 _overlay?.Show();
                 _overlay?.PositionAtBottomCenter(hwnd);
             },
@@ -111,6 +118,14 @@ public partial class App : Application
             {
                 ShowSettings();
                 return Task.CompletedTask;
+            },
+            onSessionCompleted: () =>
+            {
+                if (_hideOverlayAfterSession)
+                {
+                    _hideOverlayAfterSession = false;
+                    _overlay?.Hide();
+                }
             });
 
         _overlay.Controller = _controller;
@@ -131,7 +146,7 @@ public partial class App : Application
         _tray = CreateTrayIcon();
 
         var selectedModel = WhisperModelCatalog.Find(_settingsStore.Current.SelectedModelId);
-        if (selectedModel is null || !_models.IsDownloaded(selectedModel))
+        if (selectedModel is null || !_models.IsDownloaded(selectedModel) || e.Args.Contains("--settings"))
         {
             ShowSettings();
         }
@@ -146,7 +161,7 @@ public partial class App : Application
         }
 
         _settingsWindow = new SettingsWindow(
-            new SettingsViewModel(_settingsStore!, _models!, _transcription!));
+            new SettingsViewModel(_settingsStore!, _models!, _transcription!, _previewTranscription!));
         _settingsWindow.Closed += (_, _) => _settingsWindow = null;
         _settingsWindow.Show();
         _settingsWindow.Activate();
@@ -215,6 +230,7 @@ public partial class App : Application
         _hotkeys?.Dispose();
         _audio?.Dispose();
         _transcription?.Dispose();
+        _previewTranscription?.Dispose();
         Shutdown();
     }
 
@@ -226,6 +242,7 @@ public partial class App : Application
         _hotkeys?.Dispose();
         _audio?.Dispose();
         _transcription?.Dispose();
+        _previewTranscription?.Dispose();
         _mutex?.Dispose();
         base.OnExit(e);
     }

@@ -11,6 +11,9 @@ Built with C# / .NET 8 (WPF) and [Whisper.net](https://github.com/sandrohanea/wh
 
 - **Model picker with downloads** — Tiny → Large v3 (plus quantized variants) from Hugging Face,
   with progress, cancel, and delete. After that, everything is local.
+- **Optional two-model setup** — use a small, fast model for the live preview and a bigger,
+  more accurate model for the final text that gets pasted. If no preview model is set, the final
+  model powers both.
 - **Hands-free toggle** — click the pill or tap the hotkey to start; click/tap again to stop and paste.
 - **Push-to-talk** — press and hold the pill or hotkey; release to stop and paste.
 - **Cancel** — `Esc` discards the recording without pasting.
@@ -24,8 +27,11 @@ Built with C# / .NET 8 (WPF) and [Whisper.net](https://github.com/sandrohanea/wh
 - **Flexible pasting** — clipboard + `Ctrl+V` (restores your previous clipboard afterwards) or a
   type-it-out fallback for apps where `Ctrl+V` doesn't work.
 - **Tray icon** — Settings, show/hide overlay, exit. F9 always brings the overlay back.
-- **Settings** — hotkey rebinding, language (auto or fixed), CPU threads, input device,
-  paste behavior, run at startup.
+- **Flexible languages** — check none to detect among all languages, one to force it, or several
+  (e.g. English + Portuguese) to restrict auto-detection to just those — faster and more reliable.
+  The detected language shows in the pill while listening.
+- **Settings** — final + preview model selection, hotkey rebinding, language candidates,
+  CPU threads, input device, paste behavior, run at startup.
 
 ## Requirements
 
@@ -60,6 +66,9 @@ The published, self-contained app lands in
 | Hands-free start/stop | Tap `F9` or click the pill (tap again to finish and paste) |
 | Push-to-talk | Hold `F9` or press-and-hold the pill (release to paste) |
 | Cancel | `Esc` |
+| Hidden overlay | If you hide the pill (tray → Show / hide overlay), a session started with F9 shows it, and it hides again when the session finishes |
+| Pick models | Settings → Whisper model (radio = final) + Dictation → Preview model |
+| Pick languages | Settings → Dictation → Languages (none = all, one = fixed, several = detect among them) |
 | Rebind hotkey | Settings → Dictation → Hotkey |
 | Show/hide overlay | Tray icon → Show / hide overlay (F9 always shows it again) |
 | Exit | Tray icon → Exit |
@@ -68,6 +77,7 @@ The published, self-contained app lands in
 
 ```
 Say.exe --download <model-id>     download a model headlessly (e.g. tiny, small)
+Say.exe --settings                start with the Settings window open
 Say.exe --selftest                synthesize speech via Windows TTS and transcribe it end-to-end
 Say.exe --record <seconds>        record from the microphone, print levels, save a WAV, transcribe it
 Say.exe --model <path>            override the model for --selftest / --record

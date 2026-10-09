@@ -52,9 +52,12 @@ public sealed class GlobalHotkeyService : IDisposable
             try
             {
                 var data = Marshal.PtrToStructure<Win32.KBDLLHOOKSTRUCT>(lParam);
-                var injected = (data.flags & (Win32.LLKHF_INJECTED | Win32.LLKHF_LOWER_IL_INJECTED)) != 0;
 
-                if (!injected)
+                // Allow injected keys (e.g. remapped hotkeys from AutoHotkey); only ignore
+                // events injected from lower integrity levels.
+                var lowerIlInjected = (data.flags & Win32.LLKHF_LOWER_IL_INJECTED) != 0;
+
+                if (!lowerIlInjected)
                 {
                     var message = (int)wParam;
                     var isDown = message is Win32.WM_KEYDOWN or Win32.WM_SYSKEYDOWN;

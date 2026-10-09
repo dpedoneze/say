@@ -10,7 +10,16 @@ public sealed class AppSettings
 {
     public string? SelectedModelId { get; set; }
 
+    public string? PreviewModelId { get; set; }
+
+    /// <summary>Legacy single-language setting; migrated into <see cref="Languages"/>.</summary>
     public string Language { get; set; } = "auto";
+
+    /// <summary>
+    /// Empty: auto-detect across all languages. One entry: fixed language.
+    /// Two or more: auto-detect restricted to those candidates.
+    /// </summary>
+    public List<string> Languages { get; set; } = [];
 
     public int Threads { get; set; } = Math.Clamp(Environment.ProcessorCount / 2, 2, 8);
 

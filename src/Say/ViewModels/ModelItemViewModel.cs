@@ -39,6 +39,9 @@ public partial class ModelItemViewModel : ObservableObject
     private bool _isSelected;
 
     [ObservableProperty]
+    private bool _isPreviewRole;
+
+    [ObservableProperty]
     private bool _isDownloading;
 
     [ObservableProperty]

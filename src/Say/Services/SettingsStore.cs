@@ -36,12 +36,29 @@ public sealed class SettingsStore
             {
                 var json = File.ReadAllText(SettingsPath);
                 Current = JsonSerializer.Deserialize<AppSettings>(json, JsonOptions) ?? new AppSettings();
+                Migrate(Current);
             }
         }
         catch
         {
             Current = new AppSettings();
         }
+    }
+
+    private static void Migrate(AppSettings settings)
+    {
+        settings.Languages ??= [];
+
+        // Pre-multi-language versions stored a single code in Language.
+        if (settings.Languages.Count == 0
+            && !string.IsNullOrEmpty(settings.Language)
+            && !string.Equals(settings.Language, "auto", StringComparison.OrdinalIgnoreCase))
+        {
+            settings.Languages.Add(settings.Language);
+        }
+
+        settings.Languages.RemoveAll(string.IsNullOrWhiteSpace);
+        settings.Languages = settings.Languages.Distinct().ToList();
     }
 
     public void Save()

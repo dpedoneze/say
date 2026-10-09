@@ -11,6 +11,7 @@ public sealed class DictationController : IDisposable
 
     private readonly AudioCaptureService _audio;
     private readonly TranscriptionService _transcription;
+    private readonly TranscriptionService _previewTranscription;
     private readonly ModelManager _models;
     private readonly PasteService _paste;
     private readonly TargetWindowService _targets;
@@ -19,6 +20,7 @@ public sealed class DictationController : IDisposable
     private readonly OverlayViewModel _vm;
     private readonly Action<IntPtr> _repositionOverlay;
     private readonly Func<Task> _openSettings;
+    private readonly Action _onSessionCompleted;
 
     private readonly DispatcherTimer _ticker;
     private readonly DispatcherTimer _noticeTimer;
@@ -33,10 +35,14 @@ public sealed class DictationController : IDisposable
     private bool _busy;
     private int _lastPreviewSampleCount;
     private string _lastPreviewText = string.Empty;
+    private string _sessionFinalModelPath = string.Empty;
+    private string? _sessionLanguage;
+    private IReadOnlyList<string> _sessionCandidates = [];
 
     public DictationController(
         AudioCaptureService audio,
         TranscriptionService transcription,
+        TranscriptionService previewTranscription,
         ModelManager models,
         PasteService paste,
         TargetWindowService targets,
@@ -44,10 +50,12 @@ public sealed class DictationController : IDisposable
         GlobalHotkeyService hotkeys,
         OverlayViewModel vm,
         Action<IntPtr> repositionOverlay,
-        Func<Task> openSettings)
+        Func<Task> openSettings,
+        Action onSessionCompleted)
     {
         _audio = audio;
         _transcription = transcription;
+        _previewTranscription = previewTranscription;
         _models = models;
         _paste = paste;
         _targets = targets;
@@ -56,6 +64,7 @@ public sealed class DictationController : IDisposable
         _vm = vm;
         _repositionOverlay = repositionOverlay;
         _openSettings = openSettings;
+        _onSessionCompleted = onSessionCompleted;
 
         _hotkeys.PressStarted += OnPressStarted;
         _hotkeys.PressEnded += OnPressEnded;
@@ -142,26 +151,50 @@ public sealed class DictationController : IDisposable
         _target = _targets.Capture();
         _repositionOverlay(_target.Window);
 
-        var model = WhisperModelCatalog.Find(settings.SelectedModelId);
+        var finalModel = WhisperModelCatalog.Find(settings.SelectedModelId);
 
-        if (model is null || !_models.IsDownloaded(model))
+        if (finalModel is null || !_models.IsDownloaded(finalModel))
         {
             ShowNotice("No model yet — opening Settings to download one");
             _ = _openSettings();
             return;
         }
 
+        var previewModel = ModelSelection.ResolvePreview(
+            finalModel,
+            WhisperModelCatalog.Find(settings.PreviewModelId),
+            _models.IsDownloaded) ?? finalModel;
+
+        var finalPath = _models.PathFor(finalModel);
+        var previewPath = _models.PathFor(previewModel);
+
+        TranscriptionService previewService;
         try
         {
-            if (!string.Equals(_transcription.LoadedModelPath, _models.PathFor(model), StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(finalPath, previewPath, StringComparison.OrdinalIgnoreCase))
             {
-                _transcription.Load(_models.PathFor(model));
+                EnsureModelLoaded(_transcription, finalPath);
+                previewService = _transcription;
+            }
+            else
+            {
+                EnsureModelLoaded(_previewTranscription, previewPath);
+                previewService = _previewTranscription;
             }
         }
-        catch (Exception ex)
+        catch
         {
-            ShowNotice("Model failed to load: " + ex.Message);
-            return;
+            // The preview model failed to load: fall back to the final model for both.
+            try
+            {
+                EnsureModelLoaded(_transcription, finalPath);
+                previewService = _transcription;
+            }
+            catch (Exception ex)
+            {
+                ShowNotice("Model failed to load: " + ex.Message);
+                return;
+            }
         }
 
         try
@@ -174,14 +207,26 @@ public sealed class DictationController : IDisposable
             return;
         }
 
+        _sessionFinalModelPath = finalPath;
+        _sessionCandidates = LanguageSelection.Candidates(settings);
+        _sessionLanguage = LanguageSelection.FixedLanguage(settings);
         _lastPreviewSampleCount = 0;
         _lastPreviewText = string.Empty;
         _vm.PreviewText = string.Empty;
+        _vm.DetectedLanguage = string.Empty;
         SetState(DictationState.Listening);
 
         _previewCts = new CancellationTokenSource();
-        _ = RunPreviewLoopAsync(settings.Language, settings.Threads, _previewCts.Token);
+        _ = RunPreviewLoopAsync(previewService, settings.Threads, _previewCts.Token);
         _ticker.Start();
+    }
+
+    private static void EnsureModelLoaded(TranscriptionService service, string path)
+    {
+        if (!string.Equals(service.LoadedModelPath, path, StringComparison.OrdinalIgnoreCase))
+        {
+            service.Load(path);
+        }
     }
 
     private void CancelSession()
@@ -191,6 +236,7 @@ public sealed class DictationController : IDisposable
         _ticker.Stop();
         ShowNotice("Cancelled");
         ResetToIdle();
+        _onSessionCompleted();
     }
 
     private async Task StopAndFinishAsync()
@@ -205,6 +251,7 @@ public sealed class DictationController : IDisposable
         _previewCts?.Cancel();
         _audio.Stop();
 
+        var completed = false;
         try
         {
             var settings = _settings.Current;
@@ -223,9 +270,22 @@ public sealed class DictationController : IDisposable
             _finalCts = new CancellationTokenSource();
             try
             {
+                EnsureModelLoaded(_transcription, _sessionFinalModelPath);
+
+                if (_sessionLanguage is null && _sessionCandidates.Count >= 2)
+                {
+                    var detected = await DetectLanguageAsync(
+                        _transcription, samples, _sessionCandidates, _finalCts.Token);
+                    if (detected is not null)
+                    {
+                        _sessionLanguage = detected;
+                        _vm.DetectedLanguage = detected;
+                    }
+                }
+
                 text = await _transcription.TranscribeAsync(
                     samples,
-                    new TranscriptionOptions(settings.Language, settings.Threads),
+                    new TranscriptionOptions(_sessionLanguage, _sessionCandidates, settings.Threads),
                     _finalCts.Token);
             }
             catch (OperationCanceledException)
@@ -262,6 +322,7 @@ public sealed class DictationController : IDisposable
 
             SetState(DictationState.Done);
             await Task.Delay(900);
+            completed = true;
         }
         catch (Exception ex)
         {
@@ -270,13 +331,19 @@ public sealed class DictationController : IDisposable
         finally
         {
             ResetToIdle();
+
+            if (completed)
+            {
+                _onSessionCompleted();
+            }
         }
     }
 
-    private async Task RunPreviewLoopAsync(string language, int threads, CancellationToken cancellationToken)
+    private async Task RunPreviewLoopAsync(
+        TranscriptionService service,
+        int threads,
+        CancellationToken cancellationToken)
     {
-        var options = new TranscriptionOptions(language, threads);
-
         try
         {
             while (!cancellationToken.IsCancellationRequested)
@@ -299,10 +366,23 @@ public sealed class DictationController : IDisposable
                     samples = samples[^windowSamples..];
                 }
 
+                if (_sessionLanguage is null && _sessionCandidates.Count >= 2)
+                {
+                    var detected = await DetectLanguageAsync(service, samples, _sessionCandidates, cancellationToken);
+                    if (detected is not null)
+                    {
+                        _sessionLanguage = detected;
+                        _vm.DetectedLanguage = detected;
+                    }
+                }
+
                 string text;
                 try
                 {
-                    text = await _transcription.TranscribeAsync(samples, options, cancellationToken);
+                    text = await service.TranscribeAsync(
+                        samples,
+                        new TranscriptionOptions(_sessionLanguage, _sessionCandidates, threads),
+                        cancellationToken);
                 }
                 catch (OperationCanceledException)
                 {
@@ -325,6 +405,39 @@ public sealed class DictationController : IDisposable
         catch (OperationCanceledException)
         {
             // Session ended.
+        }
+    }
+
+    private static async Task<string?> DetectLanguageAsync(
+        TranscriptionService service,
+        float[] samples,
+        IReadOnlyList<string> candidates,
+        CancellationToken cancellationToken)
+    {
+        const int minimumSamples = AudioCaptureService.SampleRate * 3 / 2;
+        if (samples.Length < minimumSamples)
+        {
+            return null;
+        }
+
+        var detectionSamples = AudioCaptureService.SampleRate * 8;
+        if (samples.Length > detectionSamples)
+        {
+            samples = samples[..detectionSamples];
+        }
+
+        try
+        {
+            return await service.DetectLanguageAsync(samples, candidates, cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch
+        {
+            // Detection is best effort; transcription falls back to full auto-detect.
+            return null;
         }
     }
 
@@ -366,6 +479,9 @@ public sealed class DictationController : IDisposable
         _lastPreviewText = string.Empty;
         _vm.PreviewText = string.Empty;
         _vm.ElapsedText = string.Empty;
+        _vm.DetectedLanguage = string.Empty;
+        _sessionLanguage = null;
+        _sessionCandidates = [];
 
         SetState(DictationState.Idle);
         _busy = false;
