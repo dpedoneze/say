@@ -1,0 +1,341 @@
+<Window x:Class="Say.Views.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:Say.ViewModels"
+        Title="Say — Settings"
+        Width="600" Height="720"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize"
+        Background="#F5F6F8"
+        FontFamily="Segoe UI"
+        UseLayoutRounding="True"
+        TextOptions.TextFormattingMode="Display">
+
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+
+        <Style x:Key="Card" TargetType="Border">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="BorderBrush" Value="#E6E8EC"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="18,15"/>
+            <Setter Property="Margin" Value="0,0,0,12"/>
+        </Style>
+
+        <Style x:Key="SectionTitle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#111827"/>
+        </Style>
+
+        <Style x:Key="SectionSubtitle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11.5"/>
+            <Setter Property="Foreground" Value="#6B7280"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="Margin" Value="0,3,0,8"/>
+        </Style>
+
+        <Style x:Key="RowLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12.5"/>
+            <Setter Property="Foreground" Value="#374151"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <Style x:Key="PrimaryButton" TargetType="Button">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="#2563EB"/>
+            <Setter Property="Padding" Value="14,6"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="7"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#1D4ED8"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Bd" Property="Background" Value="#BFDBFE"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SubtleButton" TargetType="ButtonBase">
+            <Setter Property="Foreground" Value="#374151"/>
+            <Setter Property="Background" Value="#F3F4F6"/>
+            <Setter Property="Padding" Value="14,6"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ButtonBase">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="7"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#E5E7EB"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="DangerButton" TargetType="Button">
+            <Setter Property="Foreground" Value="#DC2626"/>
+            <Setter Property="Background" Value="#FEF2F2"/>
+            <Setter Property="Padding" Value="14,6"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="7"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#FEE2E2"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <DataTemplate DataType="{x:Type vm:ModelItemViewModel}">
+            <Grid Margin="0,7">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <RadioButton Grid.Column="0"
+                             GroupName="ModelChoice"
+                             IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                             IsEnabled="{Binding CanSelect}"
+                             VerticalAlignment="Center"
+                             Margin="0,0,10,0"/>
+
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="SemiBold" Foreground="#111827"/>
+                        <Border Background="#DBEAFE" CornerRadius="4" Padding="5,1" Margin="8,0,0,0"
+                                VerticalAlignment="Center"
+                                Visibility="{Binding IsRecommended, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="Recommended" FontSize="10" Foreground="#1D4ED8"/>
+                        </Border>
+                    </StackPanel>
+                    <TextBlock Text="{Binding Note}" FontSize="11" Foreground="#6B7280" TextWrapping="Wrap"/>
+                    <TextBlock Text="{Binding StatusText}" FontSize="11" Foreground="#9CA3AF" Margin="0,2,0,0"/>
+                    <ProgressBar Height="4" Margin="0,5,0,0" Minimum="0" Maximum="100"
+                                 Value="{Binding Progress}"
+                                 Visibility="{Binding IsDownloading, Converter={StaticResource BoolToVis}}"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Content="Download" Style="{StaticResource PrimaryButton}" Click="Download_Click"
+                            Visibility="{Binding CanDownload, Converter={StaticResource BoolToVis}}" Margin="6,0,0,0"/>
+                    <Button Content="Cancel" Style="{StaticResource SubtleButton}" Click="Cancel_Click"
+                            Visibility="{Binding CanCancel, Converter={StaticResource BoolToVis}}" Margin="6,0,0,0"/>
+                    <Button Content="Delete" Style="{StaticResource DangerButton}" Click="Delete_Click"
+                            Visibility="{Binding CanDelete, Converter={StaticResource BoolToVis}}" Margin="6,0,0,0"/>
+                </StackPanel>
+            </Grid>
+        </DataTemplate>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" Padding="20,18,20,4">
+            <StackPanel>
+
+                <Border Background="#FFFBEB" BorderBrush="#FDE68A" BorderThickness="1" CornerRadius="10"
+                        Padding="14,10" Margin="0,0,0,12"
+                        Visibility="{Binding ShowFirstRunBanner, Converter={StaticResource BoolToVis}}">
+                    <TextBlock FontSize="12" Foreground="#92400E" TextWrapping="Wrap"
+                               Text="Download a Whisper model below to start dictating. “Small” is a great default — models download once, then everything runs offline."/>
+                </Border>
+
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
+                        <TextBlock Text="Whisper model" Style="{StaticResource SectionTitle}"/>
+                        <TextBlock Style="{StaticResource SectionSubtitle}"
+                                   Text="Pick the model used for dictation. Bigger models are more accurate but slower on CPU. Downloads come from Hugging Face once, then inference is fully offline."/>
+                        <ItemsControl ItemsSource="{Binding Models}"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
+                        <TextBlock Text="Dictation" Style="{StaticResource SectionTitle}"/>
+                        <TextBlock Style="{StaticResource SectionSubtitle}"
+                                   Text="Tap the hotkey to toggle hands-free listening, or hold it to push-to-talk. Esc cancels a session."/>
+
+                        <Grid Margin="0,2,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="130"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="Hotkey" Style="{StaticResource RowLabel}"/>
+                            <ToggleButton x:Name="HotkeyCaptureButton" Grid.Column="1" HorizontalAlignment="Left"
+                                          Style="{StaticResource SubtleButton}" Click="HotkeyCapture_Click"/>
+                            <TextBlock Grid.Column="2" Text="F9 default" FontSize="11" Foreground="#9CA3AF"
+                                       VerticalAlignment="Center"/>
+                        </Grid>
+
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="130"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="Language" Style="{StaticResource RowLabel}"/>
+                            <ComboBox Grid.Column="1" Width="220" HorizontalAlignment="Left"
+                                      ItemsSource="{Binding Languages}"
+                                      DisplayMemberPath="Name"
+                                      SelectedValuePath="Code"
+                                      SelectedValue="{Binding SelectedLanguageCode, Mode=TwoWay}"/>
+                        </Grid>
+
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="130"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="CPU threads" Style="{StaticResource RowLabel}"/>
+                            <Slider Grid.Column="1" Minimum="1" Maximum="16" IsSnapToTickEnabled="True"
+                                    TickFrequency="1" Width="220" HorizontalAlignment="Left"
+                                    Value="{Binding Threads, Mode=TwoWay}"/>
+                            <TextBlock Grid.Column="2" Text="{Binding Threads}" FontSize="11" Foreground="#9CA3AF"
+                                       VerticalAlignment="Center" Width="24" TextAlignment="Right"/>
+                        </Grid>
+
+                        <CheckBox Content="Append a trailing space after pasting" FontSize="12.5"
+                                  Foreground="#374151" Margin="0,4,0,0"
+                                  IsChecked="{Binding AppendTrailingSpace, Mode=TwoWay}"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
+                        <TextBlock Text="Pasting" Style="{StaticResource SectionTitle}"/>
+                        <TextBlock Style="{StaticResource SectionSubtitle}"
+                                   Text="How the transcription is delivered into the app you were typing in."/>
+
+                        <RadioButton GroupName="PasteMethod" FontSize="12.5" Foreground="#374151" Margin="0,2,0,4"
+                                     Content="Clipboard + Ctrl+V (fast, recommended)"
+                                     IsChecked="{Binding UseClipboard, Mode=TwoWay}"/>
+                        <RadioButton GroupName="PasteMethod" FontSize="12.5" Foreground="#374151" Margin="0,0,0,10"
+                                     Content="Type it out character by character (works where Ctrl+V doesn't)"
+                                     IsChecked="{Binding UseTyping, Mode=TwoWay}"/>
+
+                        <CheckBox Content="Restore the previous clipboard content after pasting" FontSize="12.5"
+                                  Foreground="#374151" Margin="0,0,0,8"
+                                  IsChecked="{Binding RestoreClipboard, Mode=TwoWay}"/>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="130"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="Focus delay" Style="{StaticResource RowLabel}"/>
+                            <Slider Grid.Column="1" Minimum="0" Maximum="500" IsSnapToTickEnabled="True"
+                                    TickFrequency="10" Width="220" HorizontalAlignment="Left"
+                                    Value="{Binding FocusRestoreDelayMs, Mode=TwoWay}"/>
+                            <TextBlock Grid.Column="2" FontSize="11" Foreground="#9CA3AF" VerticalAlignment="Center"
+                                       Width="40" TextAlignment="Right">
+                                <Run Text="{Binding FocusRestoreDelayMs, Mode=OneWay}"/><Run Text=" ms"/>
+                            </TextBlock>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
+                        <TextBlock Text="Microphone" Style="{StaticResource SectionTitle}"/>
+                        <TextBlock Style="{StaticResource SectionSubtitle}"
+                                   Text="Input device used for dictation."/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="130"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="Input device" Style="{StaticResource RowLabel}"/>
+                            <ComboBox Grid.Column="1" Width="260" HorizontalAlignment="Left"
+                                      ItemsSource="{Binding AudioDevices}"
+                                      DisplayMemberPath="Name"
+                                      SelectedValuePath="Number"
+                                      SelectedValue="{Binding SelectedDeviceNumber, Mode=TwoWay}"/>
+                            <Button Grid.Column="2" Content="Refresh" Style="{StaticResource SubtleButton}"
+                                    Click="RefreshDevices_Click"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
+                        <TextBlock Text="General" Style="{StaticResource SectionTitle}"/>
+                        <CheckBox Content="Start Say when Windows starts" FontSize="12.5" Foreground="#374151"
+                                  Margin="0,4,0,0"
+                                  IsChecked="{Binding RunAtStartup, Mode=TwoWay}"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
+                        <TextBlock Text="About" Style="{StaticResource SectionTitle}"/>
+                        <TextBlock Style="{StaticResource SectionSubtitle}" Text="{Binding VersionText}"/>
+                        <TextBlock FontSize="11.5" Foreground="#6B7280" TextWrapping="Wrap" Margin="0,0,0,8">
+                            <Run Text="whisper.cpp runtime: "/><Run Text="{Binding RuntimeInfo, Mode=OneWay}"/>
+                        </TextBlock>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="130"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="Models folder" Style="{StaticResource RowLabel}"/>
+                            <TextBlock Grid.Column="1" Text="{Binding ModelsFolder}" FontSize="11.5"
+                                       Foreground="#6B7280" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                            <Button Grid.Column="2" Content="Open" Style="{StaticResource SubtleButton}"
+                                    Click="OpenModelsFolder_Click"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+            </StackPanel>
+        </ScrollViewer>
+
+        <Border Grid.Row="1" Background="White" BorderBrush="#E6E8EC" BorderThickness="0,1,0,0" Padding="20,12">
+            <Grid>
+                <TextBlock Text="Changes save automatically." FontSize="11.5" Foreground="#9CA3AF"
+                           VerticalAlignment="Center"/>
+                <Button Content="Close" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Right"
+                        Click="Close_Click"/>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>
