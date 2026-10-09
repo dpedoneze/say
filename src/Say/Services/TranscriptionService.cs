@@ -72,27 +72,30 @@ public sealed class TranscriptionService : IDisposable
         {
             var factory = _factory ?? throw new InvalidOperationException("No Whisper model is loaded.");
 
-            var builder = factory.CreateBuilder()
-                .WithThreads(Math.Clamp(options.Threads, 1, 32))
-                .WithNoContext();
-
-            if (!string.IsNullOrEmpty(options.Language))
+            return await Task.Run(async () =>
             {
-                builder = builder.WithLanguage(options.Language);
-            }
-            else
-            {
-                builder = builder.WithLanguageDetection();
-            }
+                var builder = factory.CreateBuilder()
+                    .WithThreads(Math.Clamp(options.Threads, 1, 32))
+                    .WithNoContext();
 
-            await using var processor = builder.Build();
-            var sb = new StringBuilder();
-            await foreach (var segment in processor.ProcessAsync(samples, cancellationToken))
-            {
-                sb.Append(segment.Text);
-            }
+                if (!string.IsNullOrEmpty(options.Language))
+                {
+                    builder = builder.WithLanguage(options.Language);
+                }
+                else
+                {
+                    builder = builder.WithLanguageDetection();
+                }
 
-            return sb.ToString().Trim();
+                await using var processor = builder.Build();
+                var sb = new StringBuilder();
+                await foreach (var segment in processor.ProcessAsync(samples, cancellationToken))
+                {
+                    sb.Append(segment.Text);
+                }
+
+                return sb.ToString().Trim();
+            }, cancellationToken).ConfigureAwait(false);
         }
         finally
         {
@@ -110,9 +113,12 @@ public sealed class TranscriptionService : IDisposable
         {
             var factory = _factory ?? throw new InvalidOperationException("No Whisper model is loaded.");
 
-            await using var processor = factory.CreateBuilder().Build();
-            var (language, _) = processor.DetectLanguageWithProbability(samples, candidates.ToArray());
-            return language;
+            return await Task.Run(async () =>
+            {
+                await using var processor = factory.CreateBuilder().Build();
+                var (language, _) = processor.DetectLanguageWithProbability(samples, candidates.ToArray());
+                return language;
+            }, cancellationToken).ConfigureAwait(false);
         }
         finally
         {

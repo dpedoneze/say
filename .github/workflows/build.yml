@@ -1,0 +1,74 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Run tests
+        run: dotnet test Say.sln -c Release --logger "console;verbosity=minimal"
+
+      - name: Determine version
+        id: version
+        shell: pwsh
+        run: |
+          $version = if ("${{ github.ref_type }}" -eq "tag") {
+            "${{ github.ref_name }}".TrimStart("v")
+          } else {
+            "0.1.0-dev.${{ github.run_number }}"
+          }
+          "value=$version" >> $env:GITHUB_OUTPUT
+          Write-Host "Version: $version"
+
+      - name: Publish (self-contained, win-x64)
+        run: dotnet publish src/Say/Say.csproj -c Release -r win-x64 --self-contained true -p:Version=${{ steps.version.outputs.value }} -o publish
+
+      - name: Package zip
+        id: package
+        shell: pwsh
+        run: |
+          Copy-Item README.md publish/README.md
+          $zip = "Say-win-x64-${{ steps.version.outputs.value }}.zip"
+          Compress-Archive -Path publish/* -DestinationPath $zip
+          "zip=$zip" >> $env:GITHUB_OUTPUT
+          Write-Host "Packaged $zip"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Say-win-x64-${{ steps.version.outputs.value }}
+          path: ${{ steps.package.outputs.zip }}
+
+      - name: Create GitHub release
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.package.outputs.zip }}
+          generate_release_notes: true
+          body: |
+            Offline dictation for Windows, built on whisper.cpp.
+
+            **Install:** download the zip, extract it anywhere and run `Say.exe`.
+            On first run, pick a Whisper model to download (Small is a good default);
+            after that, everything runs offline.
+
+            Windows may show a SmartScreen warning because the app is not code-signed —
+            click "More info" → "Run anyway".

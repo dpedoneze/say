@@ -52,6 +52,27 @@ dotnet publish src/Say/Say.csproj -c Release -r win-x64 --self-contained true
 The published, self-contained app lands in
 `src/Say/bin/Release/net8.0-windows/win-x64/publish/` — run `Say.exe` from there.
 
+## Download (for users)
+
+Grab the latest `Say-win-x64-*.zip` from the [Releases](../../releases) page, extract it anywhere,
+and run `Say.exe` — no .NET installation required. On first run, pick a Whisper model to download;
+after that, everything is offline.
+
+## Releases (GitHub Actions)
+
+`.github/workflows/build.yml` runs tests and builds the self-contained zip on every push to `main`
+(downloadable from the workflow run as an artifact). Pushing a version tag publishes a GitHub
+Release with the zip attached:
+
+```powershell
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+The workflow attaches `Say-win-x64-<version>.zip` to the release automatically. The app is
+unsigned, so Windows SmartScreen may warn on first launch ("More info" → "Run anyway"); code
+signing can be added later.
+
 ## First run
 
 1. Say opens Settings and asks you to download a model. **Small** is the recommended default;
