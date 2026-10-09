@@ -31,8 +31,7 @@ internal static class SelfTest
             var store = new SettingsStore();
             store.Load();
 
-            var modelPath = GetArgValue(args, "--model");
-            if (modelPath is null)
+            var modelPath = GetArgValue(args, "--model");            if (modelPath is null)
             {
                 var manager = new ModelManager();
                 var selected = WhisperModelCatalog.Find(store.Current.SelectedModelId);
@@ -81,12 +80,19 @@ internal static class SelfTest
             var text = transcription
                 .TranscribeAsync(
                     samples,
-                    new TranscriptionOptions(LanguageSelection.FixedLanguage(store.Current), LanguageSelection.Candidates(store.Current), store.Current.Threads),
+                    BuildOptions(store.Current),
                     CancellationToken.None)
                 .GetAwaiter()
                 .GetResult();
 
             Log($"Transcription: \"{text}\"");
+
+            var vocabulary = VocabularyCorrector.Parse(string.Join('\n', store.Current.Vocabulary));
+            var corrected = VocabularyCorrector.Apply(text, vocabulary);
+            if (!string.Equals(corrected, text, StringComparison.Ordinal))
+            {
+                Log($"Corrected: \"{corrected}\"");
+            }
 
             if (string.IsNullOrWhiteSpace(text))
             {
@@ -180,7 +186,7 @@ internal static class SelfTest
             var text = transcription
                 .TranscribeAsync(
                     samples,
-                    new TranscriptionOptions(LanguageSelection.FixedLanguage(store.Current), LanguageSelection.Candidates(store.Current), store.Current.Threads),
+                    BuildOptions(store.Current),
                     CancellationToken.None)
                 .GetAwaiter()
                 .GetResult();
@@ -250,6 +256,16 @@ internal static class SelfTest
     private sealed class SynchronousProgress(Action<double> handler) : IProgress<double>
     {
         public void Report(double value) => handler(value);
+    }
+
+    private static TranscriptionOptions BuildOptions(AppSettings settings)
+    {
+        var vocabulary = VocabularyCorrector.Parse(string.Join('\n', settings.Vocabulary));
+        return new TranscriptionOptions(
+            LanguageSelection.FixedLanguage(settings),
+            LanguageSelection.Candidates(settings),
+            VocabularyCorrector.BuildPrompt(vocabulary),
+            settings.Threads);
     }
 
     private static void PrepareConsole()

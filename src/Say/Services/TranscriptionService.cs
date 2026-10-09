@@ -3,7 +3,11 @@ using Whisper.net;
 
 namespace Say.Services;
 
-public readonly record struct TranscriptionOptions(string? Language, IReadOnlyList<string> Candidates, int Threads);
+public readonly record struct TranscriptionOptions(
+    string? Language,
+    IReadOnlyList<string> Candidates,
+    string? Prompt,
+    int Threads);
 
 public sealed class TranscriptionService : IDisposable
 {
@@ -85,6 +89,11 @@ public sealed class TranscriptionService : IDisposable
                 else
                 {
                     builder = builder.WithLanguageDetection();
+                }
+
+                if (!string.IsNullOrWhiteSpace(options.Prompt))
+                {
+                    builder = builder.WithPrompt(options.Prompt);
                 }
 
                 await using var processor = builder.Build();

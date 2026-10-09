@@ -274,6 +274,21 @@
 
                 <Border Style="{StaticResource Card}">
                     <StackPanel>
+                        <TextBlock Text="Vocabulary" Style="{StaticResource SectionTitle}"/>
+                        <TextBlock Style="{StaticResource SectionSubtitle}"
+                                   Text="Names and terms you use often (e.g. Daiane, Helena, David). One per line or comma-separated. The model is primed with these spellings, and close mishearings are corrected automatically."/>
+                        <TextBox Height="76"
+                                 AcceptsReturn="True"
+                                 TextWrapping="Wrap"
+                                 VerticalScrollBarVisibility="Auto"
+                                 FontSize="12.5"
+                                 Padding="8,6"
+                                 Text="{Binding VocabularyText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
                         <TextBlock Text="Pasting" Style="{StaticResource SectionTitle}"/>
                         <TextBlock Style="{StaticResource SectionSubtitle}"
                                    Text="How the transcription is delivered into the app you were typing in."/>

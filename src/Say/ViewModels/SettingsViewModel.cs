@@ -113,6 +113,16 @@ public partial class SettingsViewModel : ObservableObject
 
     public string HotkeyDisplay => KeyInterop.KeyFromVirtualKey(HotkeyVk).ToString();
 
+    public string VocabularyText
+    {
+        get => string.Join(Environment.NewLine, _store.Current.Vocabulary);
+        set
+        {
+            _store.Current.Vocabulary = VocabularyCorrector.Parse(value);
+            _store.Save();
+        }
+    }
+
     public bool UseClipboard
     {
         get => _pasteMethod == PasteMethod.Clipboard;

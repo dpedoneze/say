@@ -38,6 +38,8 @@ public sealed class DictationController : IDisposable
     private string _sessionFinalModelPath = string.Empty;
     private string? _sessionLanguage;
     private IReadOnlyList<string> _sessionCandidates = [];
+    private IReadOnlyList<string> _sessionVocabulary = [];
+    private string? _sessionPrompt;
 
     public DictationController(
         AudioCaptureService audio,
@@ -210,6 +212,8 @@ public sealed class DictationController : IDisposable
         _sessionFinalModelPath = finalPath;
         _sessionCandidates = LanguageSelection.Candidates(settings);
         _sessionLanguage = LanguageSelection.FixedLanguage(settings);
+        _sessionVocabulary = VocabularyCorrector.Parse(string.Join('\n', settings.Vocabulary));
+        _sessionPrompt = VocabularyCorrector.BuildPrompt(_sessionVocabulary);
         _lastPreviewSampleCount = 0;
         _lastPreviewText = string.Empty;
         _vm.PreviewText = string.Empty;
@@ -285,7 +289,7 @@ public sealed class DictationController : IDisposable
 
                 text = await _transcription.TranscribeAsync(
                     samples,
-                    new TranscriptionOptions(_sessionLanguage, _sessionCandidates, settings.Threads),
+                    new TranscriptionOptions(_sessionLanguage, _sessionCandidates, _sessionPrompt, settings.Threads),
                     _finalCts.Token);
             }
             catch (OperationCanceledException)
@@ -299,6 +303,7 @@ public sealed class DictationController : IDisposable
             }
 
             text = TextNormalizer.Normalize(text, settings.AppendTrailingSpace);
+            text = VocabularyCorrector.Apply(text, _sessionVocabulary);
             if (text.Length == 0)
             {
                 ShowNotice("Nothing recognized");
@@ -381,7 +386,7 @@ public sealed class DictationController : IDisposable
                 {
                     text = await service.TranscribeAsync(
                         samples,
-                        new TranscriptionOptions(_sessionLanguage, _sessionCandidates, threads),
+                        new TranscriptionOptions(_sessionLanguage, _sessionCandidates, _sessionPrompt, threads),
                         cancellationToken);
                 }
                 catch (OperationCanceledException)
@@ -398,6 +403,7 @@ public sealed class DictationController : IDisposable
                     break;
                 }
 
+                text = VocabularyCorrector.Apply(text, _sessionVocabulary);
                 _lastPreviewText = text;
                 _vm.PreviewText = partial ? "… " + text : text;
             }
@@ -482,6 +488,8 @@ public sealed class DictationController : IDisposable
         _vm.DetectedLanguage = string.Empty;
         _sessionLanguage = null;
         _sessionCandidates = [];
+        _sessionVocabulary = [];
+        _sessionPrompt = null;
 
         SetState(DictationState.Idle);
         _busy = false;

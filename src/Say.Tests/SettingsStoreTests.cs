@@ -32,6 +32,7 @@ public class SettingsStoreTests : IDisposable
         store.Current.SelectedModelId = "small";
         store.Current.PreviewModelId = "tiny";
         store.Current.Languages = ["en", "pt"];
+        store.Current.Vocabulary = ["Daiane", "Helena", "David"];
         store.Current.Language = "pt";
         store.Current.Threads = 4;
         store.Current.HotkeyVk = 0x77;
@@ -49,6 +50,7 @@ public class SettingsStoreTests : IDisposable
         Assert.Equal("small", reloaded.Current.SelectedModelId);
         Assert.Equal("tiny", reloaded.Current.PreviewModelId);
         Assert.Equal(new[] { "en", "pt" }, reloaded.Current.Languages);
+        Assert.Equal(new[] { "Daiane", "Helena", "David" }, reloaded.Current.Vocabulary);
         Assert.Equal("pt", reloaded.Current.Language);
         Assert.Equal(4, reloaded.Current.Threads);
         Assert.Equal(0x77, reloaded.Current.HotkeyVk);

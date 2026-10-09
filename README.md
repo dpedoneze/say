@@ -30,6 +30,9 @@ Built with C# / .NET 8 (WPF) and [Whisper.net](https://github.com/sandrohanea/wh
 - **Flexible languages** — check none to detect among all languages, one to force it, or several
   (e.g. English + Portuguese) to restrict auto-detection to just those — faster and more reliable.
   The detected language shows in the pill while listening.
+- **Custom vocabulary** — list the names and terms you use often (e.g. Daiane, Helena, David);
+  the model is primed with these spellings, and close mishearings are corrected automatically
+  (e.g. "Diane" → "Daiane").
 - **Settings** — final + preview model selection, hotkey rebinding, language candidates,
   CPU threads, input device, paste behavior, run at startup.
 
@@ -90,6 +93,7 @@ signing can be added later.
 | Hidden overlay | If you hide the pill (tray → Show / hide overlay), a session started with F9 shows it, and it hides again when the session finishes |
 | Pick models | Settings → Whisper model (radio = final) + Dictation → Preview model |
 | Pick languages | Settings → Dictation → Languages (none = all, one = fixed, several = detect among them) |
+| Custom vocabulary | Settings → Vocabulary (one name/term per line or comma-separated) |
 | Rebind hotkey | Settings → Dictation → Hotkey |
 | Show/hide overlay | Tray icon → Show / hide overlay (F9 always shows it again) |
 | Exit | Tray icon → Exit |

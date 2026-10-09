@@ -21,6 +21,9 @@ public sealed class AppSettings
     /// </summary>
     public List<string> Languages { get; set; } = [];
 
+    /// <summary>Names and terms to bias the model toward and to correct near-misses for.</summary>
+    public List<string> Vocabulary { get; set; } = [];
+
     public int Threads { get; set; } = Math.Clamp(Environment.ProcessorCount / 2, 2, 8);
 
     public int HotkeyVk { get; set; } = 0x78;

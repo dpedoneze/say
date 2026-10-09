@@ -59,6 +59,8 @@ public sealed class SettingsStore
 
         settings.Languages.RemoveAll(string.IsNullOrWhiteSpace);
         settings.Languages = settings.Languages.Distinct().ToList();
+
+        settings.Vocabulary = VocabularyCorrector.Parse(string.Join('\n', settings.Vocabulary ?? []));
     }
 
     public void Save()
