@@ -63,18 +63,17 @@ after that, everything is offline.
 
 ## Releases (GitHub Actions)
 
-`.github/workflows/build.yml` runs tests and builds the self-contained zip on every push to `main`
-(downloadable from the workflow run as an artifact). Pushing a version tag publishes a GitHub
-Release with the zip attached:
+`.github/workflows/build.yml` runs only when a version tag is pushed: it tests, builds the
+self-contained zip, and publishes a GitHub Release with the zip attached.
 
 ```powershell
 git tag v0.1.0
 git push origin v0.1.0
 ```
 
-The workflow attaches `Say-win-x64-<version>.zip` to the release automatically. The app is
-unsigned, so Windows SmartScreen may warn on first launch ("More info" → "Run anyway"); code
-signing can be added later.
+The release gets `Say-win-x64-<version>.zip` attached automatically. The app is unsigned, so
+Windows SmartScreen may warn on first launch ("More info" → "Run anyway"); code signing can be
+added later.
 
 ## First run
 

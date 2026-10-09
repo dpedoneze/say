@@ -1,11 +1,8 @@
-name: Build
+name: Release
 
 on:
   push:
-    branches: [main]
     tags: ["v*"]
-  pull_request:
-  workflow_dispatch:
 
 permissions:
   contents: write
@@ -30,11 +27,7 @@ jobs:
         id: version
         shell: pwsh
         run: |
-          $version = if ("${{ github.ref_type }}" -eq "tag") {
-            "${{ github.ref_name }}".TrimStart("v")
-          } else {
-            "0.1.0-dev.${{ github.run_number }}"
-          }
+          $version = "${{ github.ref_name }}".TrimStart("v")
           "value=$version" >> $env:GITHUB_OUTPUT
           Write-Host "Version: $version"
 
@@ -58,7 +51,6 @@ jobs:
           path: ${{ steps.package.outputs.zip }}
 
       - name: Create GitHub release
-        if: github.ref_type == 'tag'
         uses: softprops/action-gh-release@v2
         with:
           files: ${{ steps.package.outputs.zip }}
