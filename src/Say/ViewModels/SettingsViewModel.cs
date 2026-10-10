@@ -113,11 +113,14 @@ public partial class SettingsViewModel : ObservableObject
 
     public string HotkeyDisplay => KeyInterop.KeyFromVirtualKey(HotkeyVk).ToString();
 
+    private string? _vocabularyText;
+
     public string VocabularyText
     {
-        get => string.Join(Environment.NewLine, _store.Current.Vocabulary);
+        get => _vocabularyText ??= string.Join(Environment.NewLine, _store.Current.Vocabulary);
         set
         {
+            _vocabularyText = value;
             _store.Current.Vocabulary = VocabularyCorrector.Parse(value);
             _store.Save();
         }
