@@ -34,7 +34,7 @@ Built with C# / .NET 8 (WPF) and [Whisper.net](https://github.com/sandrohanea/wh
   the model is primed with these spellings, and close mishearings are corrected automatically
   (e.g. "Diane" → "Daiane").
 - **Settings** — final + preview model selection, hotkey rebinding, language candidates,
-  CPU threads, input device, paste behavior, run at startup.
+  CPU threads, input device, paste behavior, run at startup, start with the overlay hidden.
 
 ## Requirements
 
@@ -89,7 +89,7 @@ added later.
 | Hands-free start/stop | Tap `F9` or click the pill (tap again to finish and paste) |
 | Push-to-talk | Hold `F9` or press-and-hold the pill (release to paste) |
 | Cancel | `Esc` |
-| Hidden overlay | If you hide the pill (tray → Show / hide overlay), a session started with F9 shows it, and it hides again when the session finishes |
+| Hidden overlay | Settings → General → "Start with the overlay hidden"; F9 shows it while dictating and it hides again when done. The tray toggle works too |
 | Pick models | Settings → Whisper model (radio = final) + Dictation → Preview model |
 | Pick languages | Settings → Dictation → Languages (none = all, one = fixed, several = detect among them) |
 | Custom vocabulary | Settings → Vocabulary (one name/term per line or comma-separated) |

@@ -42,6 +42,7 @@ public class SettingsStoreTests : IDisposable
         store.Current.FocusRestoreDelayMs = 200;
         store.Current.AudioDeviceNumber = 2;
         store.Current.RunAtStartup = true;
+        store.Current.StartWithOverlayHidden = true;
         store.Save();
 
         var reloaded = new SettingsStore(_dir);
@@ -60,6 +61,7 @@ public class SettingsStoreTests : IDisposable
         Assert.Equal(200, reloaded.Current.FocusRestoreDelayMs);
         Assert.Equal(2, reloaded.Current.AudioDeviceNumber);
         Assert.True(reloaded.Current.RunAtStartup);
+        Assert.True(reloaded.Current.StartWithOverlayHidden);
     }
 
     [Fact]

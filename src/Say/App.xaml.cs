@@ -129,7 +129,11 @@ public partial class App : Application
             });
 
         _overlay.Controller = _controller;
-        _overlay.Show();
+
+        if (!_settingsStore.Current.StartWithOverlayHidden)
+        {
+            _overlay.Show();
+        }
 
         try
         {

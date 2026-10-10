@@ -351,6 +351,9 @@
                         <CheckBox Content="Start Say when Windows starts" FontSize="12.5" Foreground="#374151"
                                   Margin="0,4,0,0"
                                   IsChecked="{Binding RunAtStartup, Mode=TwoWay}"/>
+                        <CheckBox Content="Start with the overlay hidden (it appears only while dictating)"
+                                  FontSize="12.5" Foreground="#374151" Margin="0,8,0,0"
+                                  IsChecked="{Binding StartWithOverlayHidden, Mode=TwoWay}"/>
                     </StackPanel>
                 </Border>
 

@@ -45,6 +45,9 @@ public partial class SettingsViewModel : ObservableObject
     private bool _runAtStartup;
 
     [ObservableProperty]
+    private bool _startWithOverlayHidden;
+
+    [ObservableProperty]
     private int _hotkeyVk;
 
     [ObservableProperty]
@@ -72,6 +75,7 @@ public partial class SettingsViewModel : ObservableObject
         _restoreClipboard = s.RestoreClipboard;
         _focusRestoreDelayMs = s.FocusRestoreDelayMs;
         _runAtStartup = s.RunAtStartup;
+        _startWithOverlayHidden = s.StartWithOverlayHidden;
         _hotkeyVk = s.HotkeyVk;
         _selectedDeviceNumber = s.AudioDeviceNumber;
         _pasteMethod = s.PasteMethod;
@@ -432,6 +436,12 @@ public partial class SettingsViewModel : ObservableObject
         _store.Current.RunAtStartup = value;
         _store.Save();
         StartupRegistrar.Apply(value);
+    }
+
+    partial void OnStartWithOverlayHiddenChanged(bool value)
+    {
+        _store.Current.StartWithOverlayHidden = value;
+        _store.Save();
     }
 
     partial void OnHotkeyVkChanged(int value)
